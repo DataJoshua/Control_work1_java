@@ -19,15 +19,8 @@ public class Form extends HttpServlet {
     private Connection conn;
 
     public void init(ServletConfig var1) throws ServletException{
-        try {
-            Class.forName("org.postgresql.Driver");
-            String url = "jdbc:postgresql://localhost:5432/java";
-            conn = DriverManager.getConnection(url, "postgres", "123");
-        } catch (ClassNotFoundException e) {
-            throw new RuntimeException(e);
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
+        MakeConn makeConn = new MakeConn("java", "postgres", "123");
+        this.conn = makeConn.getConn();
     }
 
     public void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
@@ -40,6 +33,7 @@ public class Form extends HttpServlet {
         String password = req.getParameter("password");
         String phone = req.getParameter("phone");
 
+        //hashing
         String password_digest = BCrypt.hashpw(password, BCrypt.gensalt(12));
 
         try {
@@ -47,15 +41,16 @@ public class Form extends HttpServlet {
             Statement stmId = conn.createStatement();
             ResultSet resultSet = stmId.executeQuery("SELECT nextval('users_id_seq')");
             resultSet.next();
+            Integer user_id = resultSet.getInt("nextval");
 
             PreparedStatement stm = conn.prepareStatement("INSERT INTO users (id, login, password) VALUES (?, ?, ?);");
-            stm.setInt(1, resultSet.getInt("nextval"));
+            stm.setInt(1, user_id);
             stm.setString(2, login);
             stm.setString(3, password_digest);
 
 
             PreparedStatement stm2 = conn.prepareStatement("INSERT INTO users_info (user_id, name, phone, birthday) VALUES (?, ?, ?, ?);");
-            stm2.setInt(1, resultSet.getInt("nextval"));
+            stm2.setInt(1, user_id);
             stm2.setString(2, name);
             stm2.setString(3, phone);
             stm2.setDate(4, birthdate);
@@ -69,14 +64,16 @@ public class Form extends HttpServlet {
                     req.setAttribute("birthdate",birthdate );
                     req.setAttribute("login",login );
                     req.setAttribute("phone",phone );
-                    req.getRequestDispatcher("user.jsp").forward(req, resp);
+                    req.getRequestDispatcher("show.jsp").forward(req, resp);
                 }
                 else{
-                    resp.sendRedirect("error.jsp");
+                    // Erase the previous inserted row if the second statement does not work
+                    stm.executeUpdate("DELETE FROM users WHERE user_id = " + user_id);
+                    resp.getWriter().println("<h1>Somethong went wrong!</h1>");
                 }
             }
             else{
-                resp.sendRedirect("error.jsp");
+                resp.sendRedirect("<h1>Somethong went wrong!</h1>");
             }
 
         } catch (SQLException e) {
