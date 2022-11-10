@@ -8,9 +8,9 @@
     <title>Document</title>
 </head>
 <body>
-    <h1>Hello!</h1>
-
-    <a href="${pageContext.request.contextPath}/form"> Register </a>
-
+    <h3>Name: ${name}</h3>
+    <p>birthdate : ${birthdate}</p>
+    <p>login : ${login}</p>
+    <p>phone : ${phone}</p>
 </body>
 </html>
